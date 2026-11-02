@@ -1,0 +1,21 @@
+[
+  { "frase": "Luis no viene el martes", "esperado": { "tipo": "bloquear_docente", "docente": "D2", "dias": ["Martes"], "bloques": [] } },
+  { "frase": "No quiero Educación física a primera hora", "esperado": { "tipo": "prohibir", "asignatura": "Educación física", "bloques": ["B1"] } },
+  { "frase": "Máximo una hora de matemáticas al día", "esperado": { "tipo": "max_por_dia", "asignatura": "Matemáticas", "max": 1 } },
+  { "frase": "El profe Luis Vega no puede el martes", "esperado": { "tipo": "bloquear_docente", "docente": "D2", "dias": ["Martes"] } },
+  { "frase": "D02 no está disponible el martes", "esperado": { "tipo": "bloquear_docente", "docente": "D2", "dias": ["Martes"] } },
+  { "frase": "D2 falta el martes y el miércoles", "esperado": { "tipo": "bloquear_docente", "docente": "D2", "dias": ["Martes", "Miércoles"] } },
+  { "frase": "Ana no puede los viernes a primera hora", "esperado": { "tipo": "bloquear_docente", "docente": "D1", "dias": ["Viernes"], "bloques": ["B1"] } },
+  { "frase": "Carlos Peña tiene reunión el jueves en el cuarto bloque", "esperado": { "tipo": "bloquear_docente", "docente": "D4", "dias": ["Jueves"], "bloques": ["B4"] } },
+  { "frase": "Marta está incapacitada el viernes", "esperado": { "tipo": "bloquear_docente", "docente": "D3", "dias": ["Viernes"] } },
+  { "frase": "nunca educación física en B1", "esperado": { "tipo": "prohibir", "asignatura": "Educación física", "bloques": ["B1"] } },
+  { "frase": "Mejor que matemáticas no quede a última hora", "esperado": { "tipo": "evitar", "asignatura": "Matemáticas", "bloques": ["B6"] } },
+  { "frase": "Evitar matemáticas a última hora", "esperado": { "tipo": "evitar", "asignatura": "Matemáticas", "bloques": ["B6"] } },
+  { "frase": "no más de dos horas de inglés por día", "esperado": { "tipo": "max_por_dia", "asignatura": "Inglés", "max": 2 } },
+  { "frase": "el 6A no puede tener religión los lunes", "esperado": { "tipo": "prohibir", "curso": "6A", "asignatura": "Educación religiosa", "dias": ["Lunes"] } },
+  { "frase": "Ana no puede dar matemáticas el lunes", "esperado": { "tipo": "prohibir", "docente": "D1", "asignatura": "Matemáticas", "dias": ["Lunes"] } },
+  { "frase": "Que sociales no quede en los dos últimos bloques", "esperado": { "tipo": "prohibir", "asignatura": "Ciencias sociales", "bloques": ["B5", "B6"] } },
+  { "frase": "Luis no viene", "esperado": { "duda": true } },
+  { "frase": "hola, ¿cómo estás?", "esperado": { "duda": true } },
+  { "frase": "El profesor Pedro no viene el lunes", "esperado": { "duda": true } }
+]

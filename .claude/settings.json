@@ -1,0 +1,17 @@
+{
+  "hooks": {
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "shell": "bash",
+            "command": "sh \"$CLAUDE_PROJECT_DIR/.claude/hooks/recordar-contexto.sh\"",
+            "timeout": 15,
+            "statusMessage": "Revisando que CONTEXTO.md esté al día"
+          }
+        ]
+      }
+    ]
+  }
+}

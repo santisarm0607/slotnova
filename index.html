@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SlotNova · Planificación inteligente de horarios</title>
+  <meta name="description" content="SlotNova arma el horario de tu colegio sin cruces, lo reacomoda cuando hay cambios y prepara los avisos para familias y docentes.">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1114 1036'%3E%3Cpath fill='%2347529f' d='M598 2V294H327L322 622Q307 625 292 625A292 311.5 0 0 1 292 2Z'/%3E%3Cpath fill='%2347529f' d='M488 739L772 738L775 403Q792 401 810 401A303 317 0 0 1 810 1035H490Z'/%3E%3Crect fill='%2384cde4' x='683' y='0' width='368' height='333' rx='63'/%3E%3Crect fill='%2384cde4' x='47' y='674' width='381' height='355' rx='63'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="css/estilos.css">
+  <script>
+    // Aplica las opciones de accesibilidad guardadas antes de pintar la página (evita el destello de tema).
+    try {
+      var o = JSON.parse(localStorage.getItem('slotnova.opciones') || '{}'), r = document.documentElement;
+      if (o.tema === 'light' || o.tema === 'dark') r.dataset.theme = o.tema;
+      if (o.letra && o.letra !== 'normal') r.dataset.letra = o.letra;
+      if (o.contraste) r.dataset.contraste = 'alto';
+      if (o.movimiento) r.dataset.movimiento = 'reducido';
+    } catch (e) { /* sin almacenamiento: valores por defecto */ }
+  </script>
+</head>
+<body data-estado="sin-datos">
+  <a class="skip-link" href="#contenido-principal">Saltar al contenido principal</a>
+
+  <!-- ============ INICIO DE SESIÓN (prototipo visual: no hay servidor ni se guardan contraseñas) ============ -->
+  <section id="acceso" class="acceso" aria-labelledby="t-acceso" hidden>
+    <!-- div: panel de marca a la izquierda -->
+    <div class="acceso__marca">
+      <svg class="acceso__logo" viewBox="0 0 1114 1036" aria-hidden="true" focusable="false">
+        <path class="logo-a" d="M598 2V294H327L322 622Q307 625 292 625A292 311.5 0 0 1 292 2Z"/>
+        <path class="logo-a" d="M488 739L772 738L775 403Q792 401 810 401A303 317 0 0 1 810 1035H490Z"/>
+        <rect class="logo-b" x="683" y="0" width="368" height="333" rx="63"/>
+        <rect class="logo-b" x="47" y="674" width="381" height="355" rx="63"/>
+      </svg>
+      <p class="acceso__nombre">SlotNova</p>
+      <p class="acceso__lema">Planificación inteligente de horarios escolares</p>
+      <ul class="acceso__puntos">
+        <li>Horarios sin cruces en segundos</li>
+        <li>Cambios en lenguaje natural, por texto o por voz</li>
+        <li>Avisos listos para familias y docentes</li>
+      </ul>
+    </div>
+    <form id="form-acceso" class="acceso__tarjeta" novalidate>
+      <h1 id="t-acceso">Inicia sesión</h1>
+      <p class="ayuda" id="acceso-sub">Entra para planear los horarios de tu colegio.</p>
+      <p class="campo" id="campo-acceso-nombre" hidden>
+        <label for="acceso-nombre">Nombre</label>
+        <input type="text" id="acceso-nombre" autocomplete="name" placeholder="Tu nombre">
+      </p>
+      <p class="campo">
+        <label for="acceso-correo">Correo</label>
+        <input type="email" id="acceso-correo" autocomplete="email" placeholder="coordinacion@colegio.edu.co">
+      </p>
+      <p class="campo">
+        <label for="acceso-clave">Contraseña</label>
+        <input type="password" id="acceso-clave" autocomplete="current-password" placeholder="Mínimo 6 caracteres">
+      </p>
+      <p id="acceso-error" class="mensaje" role="alert"></p>
+      <button type="submit" id="btn-acceso" class="boton boton--primario boton--grande boton--ancho">Entrar</button>
+      <p class="acceso__alterno"><button type="button" id="btn-acceso-modo" class="enlace">¿No tienes cuenta? Crea una</button></p>
+      <p class="acceso__separador"><span>o</span></p>
+      <button type="button" class="boton boton--ancho" data-accion="entrar-invitado">Entrar como invitado</button>
+      <p class="acceso__nota">Prototipo: la sesión vive solo en este navegador y la contraseña no se guarda.</p>
+    </form>
+  </section>
+
+  <!-- ============ CARGANDO: logo girando mientras el motor o la IA trabajan ============ -->
+  <div id="cargando" class="cargando" role="status" aria-live="polite" hidden>
+    <svg class="cargando__logo" viewBox="0 0 1114 1036" aria-hidden="true" focusable="false">
+      <path class="logo-a pieza-1" d="M598 2V294H327L322 622Q307 625 292 625A292 311.5 0 0 1 292 2Z"/>
+      <path class="logo-a pieza-2" d="M488 739L772 738L775 403Q792 401 810 401A303 317 0 0 1 810 1035H490Z"/>
+      <rect class="logo-b pieza-3" x="683" y="0" width="368" height="333" rx="63"/>
+      <rect class="logo-b pieza-4" x="47" y="674" width="381" height="355" rx="63"/>
+    </svg>
+    <p id="cargando-texto">Armando el horario…</p>
+  </div>
+
+  <!-- ============ VISOR: horario abierto desde un enlace o código QR ============ -->
+  <section id="visor" class="visor" aria-labelledby="t-visor" hidden>
+    <!-- div: cabecera del visor -->
+    <div class="visor__cabecera">
+      <svg class="marca__logo" viewBox="0 0 1114 1036" aria-hidden="true" focusable="false">
+        <path class="logo-a" d="M598 2V294H327L322 622Q307 625 292 625A292 311.5 0 0 1 292 2Z"/>
+        <path class="logo-a" d="M488 739L772 738L775 403Q792 401 810 401A303 317 0 0 1 810 1035H490Z"/>
+        <rect class="logo-b" x="683" y="0" width="368" height="333" rx="63"/>
+        <rect class="logo-b" x="47" y="674" width="381" height="355" rx="63"/>
+      </svg>
+      <h1 id="t-visor">Horario compartido</h1>
+    </div>
+    <p id="visor-estado" class="mensaje" role="status" aria-live="polite"></p>
+    <form id="form-visor" class="controles-vista">
+      <p class="campo">
+        <label for="visor-vista">Ver</label>
+        <select id="visor-vista"></select>
+      </p>
+    </form>
+    <p class="acciones">
+      <button type="button" id="visor-png" class="boton boton--primario">Descargar imagen</button>
+      <button type="button" id="visor-pdf" class="boton">Descargar PDF</button>
+      <a class="boton" href="./">Abrir SlotNova</a>
+    </p>
+    <!-- div: imagen del horario (desplazable en celular) -->
+    <div id="visor-imagen" class="visor__imagen"></div>
+  </section>
+
+  <header class="cabecera">
+    <!-- div: fila de maquetación flexible (marca a la izquierda, botones a la derecha) -->
+    <div class="contenedor cabecera__barra">
+      <a class="marca" href="#datos" aria-label="SlotNova, ir al inicio">
+        <svg class="marca__logo" viewBox="0 0 1114 1036" aria-hidden="true" focusable="false">
+          <path class="logo-a" d="M598 2V294H327L322 622Q307 625 292 625A292 311.5 0 0 1 292 2Z"/>
+          <path class="logo-a" d="M488 739L772 738L775 403Q792 401 810 401A303 317 0 0 1 810 1035H490Z"/>
+          <rect class="logo-b" x="683" y="0" width="368" height="333" rx="63"/>
+          <rect class="logo-b" x="47" y="674" width="381" height="355" rx="63"/>
+        </svg>
+        <span class="marca__texto">
+          <span class="marca__nombre">SlotNova</span>
+          <span class="marca__lema">Planificación inteligente</span>
+        </span>
+      </a>
+      <!-- div: grupo de botones de la cabecera -->
+      <div class="cabecera__acciones">
+        <button type="button" class="boton boton--icono" data-abrir="horarios">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 3h12v18l-6-4-6 4z"/></svg>
+          <span class="boton__texto">Mis horarios</span>
+        </button>
+        <button type="button" class="boton boton--icono" data-abrir="opciones">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
+          <span class="boton__texto">Opciones</span>
+        </button>
+        <details id="menu-cuenta" class="menu menu--derecha" hidden>
+          <summary class="avatar" aria-label="Tu cuenta"><span id="avatar-iniciales" aria-hidden="true">?</span></summary>
+          <!-- div: contenido del menú de la cuenta -->
+          <div class="menu__panel">
+            <p class="menu__titulo"><strong id="cuenta-nombre"></strong><span id="cuenta-correo" class="ayuda"></span></p>
+            <button type="button" id="btn-salir" class="menu__item">Cerrar sesión</button>
+          </div>
+        </details>
+      </div>
+    </div>
+
+    <nav class="pestanas" aria-label="Secciones">
+      <ul class="pestanas__lista contenedor">
+        <li><a href="#datos" data-ir="datos" aria-current="page">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 4h10l6 6v10H4z M14 4v6h6"/></svg>
+          <span>Datos</span></a></li>
+        <li><a href="#horario" data-ir="horario">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M3 5h18v15H3z M3 10h18 M8 3v4 M16 3v4"/></svg>
+          <span>Horario</span></a></li>
+        <li><a href="#cambios" data-ir="cambios">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z M18 15l.9 2.1 2.1.9-2.1.9L18 21l-.9-2.1-2.1-.9 2.1-.9z"/></svg>
+          <span>Cambios</span></a></li>
+        <li><a href="#ausencias" data-ir="ausencias">
+          <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M2 21c0-4 3-6 7-6s7 2 7 6 M17 8l4 4 M21 8l-4 4"/></svg>
+          <span>Ausencias</span></a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <main id="contenido-principal" class="contenedor" tabindex="-1">
+
+    <!-- ============ DATOS ============ -->
+    <section id="panel-datos" class="panel" data-panel="datos" aria-labelledby="t-datos">
+      <header class="portada">
+        <h1 id="t-datos">Arma el horario de tu colegio <em>en minutos</em></h1>
+        <p>Sube tu Excel y SlotNova arma la semana sin cruces de docentes, cursos ni salones.</p>
+      </header>
+
+      <!-- div: bloque de carga del archivo -->
+      <div class="carga">
+        <label for="input-excel" id="zona-archivo" class="zona-archivo">
+          <svg class="zona-archivo__icono" viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 15V4M7 9l5-5 5 5M4 15v4h16v-4"/></svg>
+          <span class="zona-archivo__titulo">Arrastra tu Excel aquí</span>
+          <span class="zona-archivo__ayuda">o haz clic para elegir el archivo .xlsx</span>
+        </label>
+        <input type="file" id="input-excel" class="visually-hidden" data-accion="subir-excel" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet">
+        <p class="ayuda carga__extras">¿No tienes el archivo? <button type="button" id="btn-plantilla" class="enlace">Descarga la plantilla</button><span id="atajo-guardados" hidden> · <button type="button" class="enlace" data-abrir="horarios">Abrir un horario guardado</button></span></p>
+      </div>
+      <p id="estado-carga" class="mensaje" role="status" aria-live="polite"></p>
+
+      <ul class="ventajas" data-vacio="datos">
+        <li><span class="ventajas__icono" aria-hidden="true">✔</span><strong>Cero cruces</strong> Cada horario se revisa clase por clase antes de mostrarse.</li>
+        <li><span class="ventajas__icono" aria-hidden="true">✦</span><strong>Cambios en lenguaje natural</strong> Escribe «Luis no viene el martes» y el horario se reacomoda.</li>
+        <li><span class="ventajas__icono" aria-hidden="true">✉</span><strong>Avisos listos</strong> Mensajes para familias y docentes, listos para WhatsApp.</li>
+      </ul>
+
+      <section id="sec-datos-listos" aria-label="Datos cargados" hidden>
+        <!-- div: rejilla de dos columnas (jornada y revisión), cada tarjeta con su propio alto -->
+        <div class="columnas columnas--arriba">
+          <section class="tarjeta" aria-labelledby="t-jornada">
+            <h2 id="t-jornada">Jornada</h2>
+            <form id="form-tiempo">
+              <fieldset class="segmentado" data-accion="duracion-bloque">
+                <legend>Duración de cada clase</legend>
+                <input type="radio" id="dur-45" name="duracion" value="45"><label for="dur-45">45 min</label>
+                <input type="radio" id="dur-50" name="duracion" value="50" checked><label for="dur-50">50 min</label>
+                <input type="radio" id="dur-otra" name="duracion" value="otra"><label for="dur-otra">Otra</label>
+              </fieldset>
+              <p class="campo campo--corto" id="campo-dur-otra" hidden>
+                <label for="dur-otra-min">Minutos por clase</label>
+                <input type="number" id="dur-otra-min" min="20" max="120" step="5" value="55">
+              </p>
+              <!-- div: rejilla de campos del formulario -->
+              <div class="rejilla-campos">
+                <p class="campo">
+                  <label for="hora-inicio">Entrada</label>
+                  <input type="time" id="hora-inicio" value="07:00" step="300">
+                </p>
+                <p class="campo">
+                  <label for="descanso-min">Descanso (min)</label>
+                  <input type="number" id="descanso-min" min="0" max="90" step="5" value="20">
+                </p>
+                <p class="campo">
+                  <label for="descanso-despues">Descanso después de</label>
+                  <select id="descanso-despues">
+                    <option value="B1">B1</option>
+                    <option value="B2">B2</option>
+                    <option value="B3" selected>B3</option>
+                    <option value="B4">B4</option>
+                    <option value="B5">B5</option>
+                  </select>
+                </p>
+              </div>
+            </form>
+            <ul id="lista-bloques" class="lista-bloques" aria-label="Horas de cada bloque"></ul>
+          </section>
+
+          <section class="tarjeta" aria-labelledby="t-revision">
+            <h2 id="t-revision">Revisión de tus datos</h2>
+            <p id="diag-resumen" class="mensaje" role="status" aria-live="polite"></p>
+            <ul id="lista-diagnostico" class="semaforo"></ul>
+            <p class="tarjeta__pie"><button type="button" id="btn-ver-detalles" class="enlace">Ver todos los detalles y las clases por docente</button></p>
+          </section>
+        </div>
+
+        <!-- div: llamado principal para generar el horario -->
+        <div class="cta">
+          <button type="button" id="btn-generar" class="boton boton--primario boton--grande" data-accion="generar">Generar horario</button>
+          <p class="ayuda">Tarda unos segundos. Lo que no quepa queda marcado como pendiente, nunca con cruces.</p>
+        </div>
+        <p id="estado-generar-datos" class="mensaje" role="status" aria-live="polite"></p>
+
+        <details id="diag-mas" class="plegable">
+          <summary>Ver todos los detalles de la revisión</summary>
+          <ul id="lista-diagnostico-mas" class="semaforo semaforo--rejilla"></ul>
+          <h3>Clases por docente</h3>
+          <ul id="lista-carga" class="cargas"></ul>
+        </details>
+
+        <details id="editor" class="editor plegable">
+          <summary>Editar datos</summary>
+          <p class="ayuda">Corrige o agrega cursos, docentes, materias, salones y horarios disponibles.</p>
+          <p id="editor-vacio" class="paso__vacio">Primero carga los datos para editarlos.</p>
+
+          <section id="ed-cursos" class="subpaso" aria-labelledby="t-ed-cursos" hidden>
+            <h3 id="t-ed-cursos">Cursos</h3>
+            <!-- div: contenedor con desplazamiento horizontal para la tabla editable -->
+            <div id="ed-cursos-tabla" class="tabla-scroll" role="region" aria-labelledby="t-ed-cursos" tabindex="0"></div>
+            <p class="acciones">
+              <button type="button" class="boton boton--pequeno" data-agregar="curso">Agregar curso</button>
+              <label for="ed-duplicar-origen" class="visually-hidden">Curso a duplicar</label>
+              <select id="ed-duplicar-origen"><option value="">Curso a duplicar</option></select>
+              <button type="button" class="boton boton--pequeno" id="ed-duplicar">Duplicar curso</button>
+            </p>
+          </section>
+
+          <section id="ed-docentes" class="subpaso" aria-labelledby="t-ed-docentes" hidden>
+            <h3 id="t-ed-docentes">Docentes</h3>
+            <div id="ed-docentes-tabla" class="tabla-scroll" role="region" aria-labelledby="t-ed-docentes" tabindex="0"></div>
+            <p class="acciones"><button type="button" class="boton boton--pequeno" data-agregar="docente">Agregar docente</button></p>
+          </section>
+
+          <section id="ed-habilitados" class="subpaso" aria-labelledby="t-ed-habilitados" hidden>
+            <h3 id="t-ed-habilitados">Materias que puede dar cada docente</h3>
+            <div id="ed-habilitados-tabla" class="tabla-scroll" role="region" aria-labelledby="t-ed-habilitados" tabindex="0"></div>
+          </section>
+
+          <section id="ed-carga" class="subpaso" aria-labelledby="t-ed-carga" hidden>
+            <h3 id="t-ed-carga">Materias de cada curso</h3>
+            <div id="ed-carga-tabla" class="tabla-scroll" role="region" aria-labelledby="t-ed-carga" tabindex="0"></div>
+            <p class="acciones"><button type="button" class="boton boton--pequeno" data-agregar="carga">Agregar materia a un curso</button></p>
+          </section>
+
+          <section id="ed-salones" class="subpaso" aria-labelledby="t-ed-salones" hidden>
+            <h3 id="t-ed-salones">Salones</h3>
+            <div id="ed-salones-tabla" class="tabla-scroll" role="region" aria-labelledby="t-ed-salones" tabindex="0"></div>
+            <p class="acciones"><button type="button" class="boton boton--pequeno" data-agregar="salon">Agregar salón</button></p>
+          </section>
+
+          <section id="ed-disponibilidad" class="subpaso" aria-labelledby="t-ed-disp" hidden>
+            <h3 id="t-ed-disp">Horas disponibles de cada docente</h3>
+            <p class="campo">
+              <label for="ed-disp-docente">Docente</label>
+              <select id="ed-disp-docente"><option value="">Elige un docente</option></select>
+            </p>
+            <p class="ayuda">Desmarca las horas en las que el docente no puede.</p>
+            <div id="ed-disp-tabla" class="tabla-scroll" role="region" aria-labelledby="t-ed-disp" tabindex="0"></div>
+          </section>
+
+          <ul id="ed-errores" class="lista-estado" aria-live="polite"></ul>
+          <p class="acciones">
+            <button type="button" id="ed-aplicar" class="boton boton--primario" disabled>Guardar cambios</button>
+            <button type="button" id="ed-descartar" class="boton" disabled>Descartar</button>
+            <button type="button" id="btn-entrada" class="boton" disabled>Descargar estos datos (.xlsx)</button>
+          </p>
+        </details>
+      </section>
+    </section>
+
+    <!-- ============ HORARIO ============ -->
+    <section id="panel-horario" class="panel" data-panel="horario" aria-labelledby="t-horario" hidden>
+      <!-- div: encabezado del panel con título y herramientas -->
+      <div class="panel__cabecera">
+        <h1 id="t-horario">Horario semanal <span id="version-horario" class="insignia" hidden></span></h1>
+        <ul class="acciones no-imprimir" id="herramientas-horario" hidden>
+          <li><button type="button" id="btn-guardar" class="boton" data-abrir="horarios" data-guardar>Guardar</button></li>
+          <li><button type="button" id="btn-evento" class="boton" data-accion="nuevo-evento">+ Evento</button></li>
+          <li><button type="button" id="btn-otra" class="boton" data-accion="otra-opcion" disabled>Otra versión</button></li>
+          <li>
+            <details id="menu-descargar" class="menu">
+              <summary class="boton boton--primario">Descargar</summary>
+              <!-- div: opciones de descarga -->
+              <div class="menu__panel">
+                <button type="button" id="btn-excel" class="menu__item" data-accion="exportar-excel" disabled>Excel (.xlsx) <span class="ayuda">todas las hojas</span></button>
+                <button type="button" id="btn-pdf" class="menu__item" data-accion="exportar-pdf">PDF <span class="ayuda">lo que estás viendo</span></button>
+                <button type="button" id="btn-pdf-todos" class="menu__item">PDF de todos los cursos <span class="ayuda">una página por curso</span></button>
+                <button type="button" id="btn-png" class="menu__item" data-accion="exportar-png">Imagen PNG</button>
+                <button type="button" id="btn-jpeg" class="menu__item" data-accion="exportar-jpeg">Imagen JPEG</button>
+                <button type="button" id="btn-qr" class="menu__item" data-accion="exportar-qr">Código QR para el celular</button>
+              </div>
+            </details>
+          </li>
+          <li><button type="button" id="btn-imprimir" class="boton" data-accion="imprimir" disabled>Imprimir</button></li>
+        </ul>
+      </div>
+      <p class="paso__vacio" data-vacio="horario">Aún no hay horario. <a href="#datos">Sube tu Excel</a> y pulsa «Generar horario», o abre uno de <button type="button" class="enlace" data-abrir="horarios">tus horarios guardados</button>.</p>
+      <p id="estado-exportar" class="mensaje" role="status" aria-live="polite"></p>
+      <p id="estado-generar" class="mensaje" role="status" aria-live="polite"></p>
+
+      <section id="sec-horario" aria-label="Resultado" hidden>
+        <p id="estado-validez" class="mensaje validez" role="status" aria-live="polite"></p>
+        <ul id="metricas" class="kpis" aria-live="polite"></ul>
+
+        <p class="interruptor no-imprimir">
+          <input type="checkbox" id="modo-estricto" role="switch" data-accion="modo-docente">
+          <label for="modo-estricto">Solo el docente asignado
+            <span class="opcion__desc">Si está apagado, otro docente habilitado puede dar las clases de quien supere su máximo.</span></label>
+        </p>
+
+        <section id="sec-cambio" class="aviso-cambio no-imprimir" aria-labelledby="t-cambio-archivo" hidden>
+          <h2 id="t-cambio-archivo">Tu archivo trae un cambio</h2>
+          <p id="desc-escenario"></p>
+          <p class="acciones">
+            <button type="button" id="btn-cambio" class="boton boton--primario" data-accion="aplicar-cambio">Aplicar cambio</button>
+            <button type="button" id="btn-restaurar" class="boton" data-accion="quitar-cambio" disabled>Volver al horario original</button>
+          </p>
+          <p id="estado-cambio" class="mensaje" role="status" aria-live="polite"></p>
+        </section>
+
+        <section id="panel-cambio" class="tarjeta" aria-labelledby="t-antes-despues" hidden>
+          <h2 id="t-antes-despues">Qué cambió</h2>
+          <ul id="resumen-cambio" class="kpis kpis--compactos"></ul>
+          <details>
+            <summary>Clases que estaban en horas ya no disponibles</summary>
+            <ul id="lista-afectadas" class="detalle-lista"></ul>
+          </details>
+          <details open>
+            <summary>Clases que se movieron</summary>
+            <div id="tabla-movidas" class="tabla-scroll" role="region" aria-label="Clases movidas" tabindex="0"></div>
+          </details>
+        </section>
+
+        <form id="form-vista" class="controles-vista no-imprimir">
+          <fieldset class="segmentado">
+            <legend>Ver por</legend>
+            <input type="radio" id="vista-curso" name="vista-tipo" value="curso" data-vista="curso" checked><label for="vista-curso">Curso</label>
+            <input type="radio" id="vista-docente" name="vista-tipo" value="docente" data-vista="docente"><label for="vista-docente">Docente</label>
+            <input type="radio" id="vista-salon" name="vista-tipo" value="salon" data-vista="salon"><label for="vista-salon">Salón</label>
+            <input type="radio" id="vista-todos" name="vista-tipo" value="todos"><label for="vista-todos">Todos</label>
+          </fieldset>
+          <p class="campo" id="campo-vista-id">
+            <label for="vista-id">Curso</label>
+            <select id="vista-id" data-selector><option value="">—</option></select>
+          </p>
+        </form>
+        <!-- div: leyenda de materias con el acceso a editar nombres -->
+        <div class="leyenda-fila">
+          <ul id="leyenda" class="leyenda" aria-label="Colores por materia"></ul>
+          <button type="button" id="btn-editar-nombres" class="enlace no-imprimir" data-accion="editar-nombres">✎ Editar nombres</button>
+        </div>
+        <!-- div: ayuda y botones del intercambio manual de clases -->
+        <div id="ayuda-intercambio" class="intercambio no-imprimir">
+          <p class="ayuda">Para mover una clase, tócala: en verde verás con cuáles se puede intercambiar sin romper ninguna regla.</p>
+          <p class="acciones">
+            <button type="button" id="btn-deshacer" class="boton boton--pequeno" disabled>Deshacer</button>
+            <button type="button" id="btn-deshacer-todo" class="boton boton--pequeno" disabled>Deshacer todo</button>
+          </p>
+        </div>
+        <p id="estado-intercambio" class="mensaje" role="status" aria-live="polite"></p>
+        <!-- div: punto de montaje de una o varias tablas de horario (vista «todos») -->
+        <div id="cuadricula" class="horarios-todos"></div>
+
+        <section id="sec-eventos" class="tarjeta no-imprimir" aria-labelledby="t-eventos">
+          <!-- div: título de la sección con su botón -->
+          <div class="seccion__cabecera">
+            <h2 id="t-eventos">Eventos</h2>
+            <button type="button" class="boton boton--pequeno" data-accion="nuevo-evento">+ Agregar evento</button>
+          </div>
+          <p id="eventos-vacio" class="ayuda">Agrega actos, reuniones, evaluaciones o salidas: aparecen en el horario y en las descargas.</p>
+          <ul id="lista-eventos" class="eventos"></ul>
+        </section>
+
+        <section id="sec-pendientes" class="tarjeta" aria-labelledby="t-pendientes" tabindex="-1" hidden>
+          <h2 id="t-pendientes">Clases pendientes</h2>
+          <p class="ayuda">No cupieron sin crear cruces. Esto es lo que pasó y cómo resolverlo.</p>
+          <div id="pendientes" class="tabla-scroll" role="region" aria-labelledby="t-pendientes" tabindex="0"></div>
+        </section>
+
+        <details class="plegable no-imprimir">
+          <summary>Cómo se armó este horario</summary>
+          <ul id="lista-decisiones" class="bitacora"></ul>
+        </details>
+
+        <details id="sec-reporte" class="plegable">
+          <summary>Reporte completo</summary>
+          <ul id="metricas-detalle" class="conteos"></ul>
+          <!-- div: rejilla de dos columnas (cruces y reglas) -->
+          <div class="columnas">
+            <section aria-labelledby="t-colisiones">
+              <h3 id="t-colisiones">Cruces</h3>
+              <ul id="colisiones" class="conteos"></ul>
+            </section>
+            <section aria-labelledby="t-infracciones">
+              <h3 id="t-infracciones">Reglas obligatorias</h3>
+              <ul id="infracciones" class="conteos"></ul>
+            </section>
+          </div>
+          <section aria-labelledby="t-preferencias">
+            <h3 id="t-preferencias">Calidad del horario</h3>
+            <ul id="preferencias" class="conteos"></ul>
+            <details id="det-huecos">
+              <summary>Huecos por docente</summary>
+              <ul id="lista-huecos" class="detalle-lista"></ul>
+            </details>
+            <details id="det-consecutivas">
+              <summary>Clases seguidas de la misma materia</summary>
+              <ul id="lista-consecutivas" class="detalle-lista"></ul>
+            </details>
+          </section>
+          <section aria-labelledby="t-certificado">
+            <h3 id="t-certificado">Verificación independiente</h3>
+            <ul id="certificado" class="lista-estado"></ul>
+          </section>
+        </details>
+      </section>
+    </section>
+
+    <!-- ============ CAMBIOS CON IA ============ -->
+    <section id="panel-cambios" class="panel" data-panel="cambios" aria-labelledby="t-cambios" hidden>
+      <!-- div: encabezado del panel con título y estado de la IA -->
+      <div class="panel__cabecera">
+        <h1 id="t-cambios">Cambios</h1>
+        <!-- div: estado de la IA con su interruptor y su configuración -->
+        <div class="ia-barra">
+          <p id="estado-ia" class="estado-ia" role="status" aria-live="polite"><span aria-hidden="true">●</span> Modo local</p>
+          <p class="interruptor interruptor--compacto">
+            <input type="checkbox" id="ia-activa" role="switch" data-accion="ia-activa">
+            <label for="ia-activa">Usar IA</label>
+          </p>
+          <button type="button" class="boton boton--pequeno" data-abrir="ia">Configurar IA</button>
+        </div>
+      </div>
+      <p class="panel__intro">Escribe el cambio como se lo dirías a un colega. SlotNova lo entiende, te lo muestra para que lo confirmes y reacomoda el horario.</p>
+      <p class="paso__vacio" data-vacio="datos">Primero <a href="#datos">sube tu Excel</a>.</p>
+
+      <section id="sec-novedad" aria-label="Escribir un cambio" hidden>
+        <form id="form-novedad" class="tarjeta">
+          <p class="campo">
+            <label for="texto-novedad">¿Qué cambió?</label>
+            <!-- span: caja de texto con el botón de dictado por voz -->
+            <span class="con-voz">
+              <textarea id="texto-novedad" rows="3" data-accion="novedad-texto" placeholder="Escribe o dicta el cambio"></textarea>
+              <button type="button" id="btn-voz-cambio" class="boton-voz" data-voz="texto-novedad" aria-label="Dictar el cambio por voz">
+                <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z M19 11a7 7 0 0 1-14 0 M12 18v3"/></svg>
+              </button>
+            </span>
+          </p>
+          <p class="etiqueta" id="t-ejemplos">Sugerencias con tus datos:</p>
+          <ul id="sugerencias-cambio" class="chips" aria-labelledby="t-ejemplos"></ul>
+          <p class="acciones"><button type="submit" id="btn-interpretar" class="boton boton--primario" data-accion="novedad-enviar">Revisar cambio</button></p>
+        </form>
+        <p id="estado-novedad" class="mensaje" role="status" aria-live="polite"></p>
+
+        <section id="propuesta" class="tarjeta tarjeta--destacada" aria-labelledby="t-propuesta" hidden>
+          <h2 id="t-propuesta">Esto entendí</h2>
+          <ul id="lista-propuesta" class="reglas-activas"></ul>
+          <ul id="lista-dudas" class="lista-estado"></ul>
+          <p class="acciones">
+            <button type="button" id="btn-confirmar" class="boton boton--primario">Aplicar al horario</button>
+            <button type="button" id="btn-descartar" class="boton">Descartar</button>
+          </p>
+        </section>
+
+        <section aria-labelledby="t-reglas-activas">
+          <h2 id="t-reglas-activas">Cambios activos</h2>
+          <p id="reglas-vacio" class="ayuda">Todavía no has agregado cambios.</p>
+          <ul id="reglas-activas" class="reglas-activas"></ul>
+        </section>
+
+        <p class="ayuda">Sin IA, SlotNova entiende las frases más comunes. Con IA (Claude o Gemini) entiende frases libres y también puedes conversar con el <button type="button" class="enlace" data-abrir="asistente">asistente</button>.</p>
+      </section>
+    </section>
+
+    <!-- ============ AUSENCIAS DEL DÍA ============ -->
+    <section id="panel-ausencias" class="panel" data-panel="ausencias" aria-labelledby="t-avisos" hidden>
+      <h1 id="t-avisos">¿Falta un docente hoy?</h1>
+      <p class="panel__intro">Te decimos quién puede cubrir cada clase y preparamos los avisos para familias y docentes. Los mensajes no mencionan el motivo de la ausencia.</p>
+      <p class="paso__vacio" data-vacio="horario">Primero <a href="#datos">genera el horario</a>.</p>
+
+      <form id="form-dia" class="tarjeta" hidden>
+        <!-- div: rejilla de campos del formulario -->
+        <div class="rejilla-campos">
+          <p class="campo">
+            <label for="dia-docente">Docente que falta</label>
+            <select id="dia-docente"></select>
+          </p>
+          <p class="campo">
+            <label for="dia-dia">Día</label>
+            <select id="dia-dia"></select>
+          </p>
+        </div>
+        <fieldset id="dia-bloques" class="casillas">
+          <legend>¿En qué horas?</legend>
+        </fieldset>
+        <p class="acciones">
+          <button type="submit" class="boton boton--primario">Buscar quién cubre</button>
+          <button type="button" id="btn-dia-cambio" class="boton">Usar el cambio del archivo</button>
+        </p>
+      </form>
+      <p id="estado-dia" class="mensaje" role="status" aria-live="polite"></p>
+
+      <section id="sec-cobertura" aria-labelledby="t-cobertura" hidden>
+        <h2 id="t-cobertura">Quién cubre cada clase</h2>
+        <p class="ayuda">Te sugerimos la mejor opción (★). Puedes cambiarla.</p>
+        <ul id="lista-cobertura" class="coberturas"></ul>
+      </section>
+
+      <section id="sec-avisos" aria-labelledby="t-lista-avisos" hidden>
+        <h2 id="t-lista-avisos">Avisos listos para enviar</h2>
+        <p id="bandeja" class="ayuda" role="status" aria-live="polite"></p>
+        <ul id="lista-avisos" class="avisos"></ul>
+      </section>
+    </section>
+  </main>
+
+  <footer class="pie">
+    <!-- div: contenedor centrado del pie -->
+    <div class="contenedor">
+      <p>© 2026 SlotNova · Planificación inteligente de horarios escolares</p>
+    </div>
+  </footer>
+
+  <!-- ============ DIÁLOGO: OPCIONES DE ACCESIBILIDAD ============ -->
+  <dialog id="dlg-opciones" class="dialogo" aria-labelledby="t-opciones">
+    <form method="dialog" class="dialogo__cuerpo" id="form-opciones">
+      <!-- div: título del diálogo y botón de cerrar -->
+      <div class="dialogo__cabecera">
+        <h2 id="t-opciones">Opciones</h2>
+        <button type="submit" class="boton-cerrar" aria-label="Cerrar">×</button>
+      </div>
+      <fieldset class="segmentado">
+        <legend>Tema</legend>
+        <input type="radio" id="op-tema-auto" name="op-tema" value="auto" checked><label for="op-tema-auto">Automático</label>
+        <input type="radio" id="op-tema-claro" name="op-tema" value="light"><label for="op-tema-claro">Claro</label>
+        <input type="radio" id="op-tema-oscuro" name="op-tema" value="dark"><label for="op-tema-oscuro">Nocturno</label>
+      </fieldset>
+      <fieldset class="segmentado">
+        <legend>Tamaño de letra</legend>
+        <input type="radio" id="op-letra-normal" name="op-letra" value="normal" checked><label for="op-letra-normal">Normal</label>
+        <input type="radio" id="op-letra-grande" name="op-letra" value="grande"><label for="op-letra-grande">Grande</label>
+        <input type="radio" id="op-letra-muy" name="op-letra" value="muy-grande"><label for="op-letra-muy">Muy grande</label>
+      </fieldset>
+      <p class="interruptor">
+        <input type="checkbox" id="op-contraste" role="switch">
+        <label for="op-contraste">Alto contraste <span class="opcion__desc">Textos y bordes más marcados.</span></label>
+      </p>
+      <p class="interruptor">
+        <input type="checkbox" id="op-movimiento" role="switch">
+        <label for="op-movimiento">Reducir animaciones <span class="opcion__desc">Quita desplazamientos y transiciones.</span></label>
+      </p>
+      <p class="acciones">
+        <button type="submit" class="boton boton--primario">Listo</button>
+        <button type="button" id="op-restablecer" class="boton">Restablecer</button>
+      </p>
+    </form>
+  </dialog>
+
+  <!-- ============ DIÁLOGO: MIS HORARIOS ============ -->
+  <dialog id="dlg-horarios" class="dialogo" aria-labelledby="t-horarios">
+    <!-- div: contenido del diálogo -->
+    <div class="dialogo__cuerpo">
+      <!-- div: título del diálogo y botón de cerrar -->
+      <div class="dialogo__cabecera">
+        <h2 id="t-horarios">Mis horarios</h2>
+        <button type="button" class="boton-cerrar" data-cerrar aria-label="Cerrar">×</button>
+      </div>
+      <form id="form-guardar" class="tarjeta">
+        <p class="campo">
+          <label for="nombre-horario">Nombre del horario actual</label>
+          <input type="text" id="nombre-horario" maxlength="60" placeholder="Ejemplo: Primer semestre 2027" autocomplete="off">
+        </p>
+        <p class="acciones"><button type="submit" class="boton boton--primario" data-accion="guardar-horario">Guardar horario</button></p>
+      </form>
+      <p id="guardar-vacio" class="ayuda">Genera un horario para poder guardarlo.</p>
+      <p id="estado-guardados" class="mensaje" role="status" aria-live="polite"></p>
+      <h3>Guardados</h3>
+      <p id="guardados-vacio" class="ayuda">Aún no tienes horarios guardados.</p>
+      <ul id="lista-guardados" class="guardados"></ul>
+    </div>
+  </dialog>
+
+  <!-- ============ DIÁLOGO: CONFIGURAR LA IA ============ -->
+  <dialog id="dlg-ia" class="dialogo" aria-labelledby="t-ia">
+    <form id="form-ia" class="dialogo__cuerpo">
+      <!-- div: título del diálogo y botón de cerrar -->
+      <div class="dialogo__cabecera">
+        <h2 id="t-ia">Inteligencia artificial</h2>
+        <button type="button" class="boton-cerrar" data-cerrar aria-label="Cerrar">×</button>
+      </div>
+      <p class="ayuda">Conecta Claude o Gemini con tu propia clave. Las solicitudes van directo de tu navegador al proveedor.</p>
+      <fieldset class="segmentado">
+        <legend>Proveedor</legend>
+        <input type="radio" id="ia-claude" name="ia-proveedor" value="anthropic" checked><label for="ia-claude">Claude</label>
+        <input type="radio" id="ia-gemini" name="ia-proveedor" value="gemini"><label for="ia-gemini">Gemini</label>
+      </fieldset>
+      <p class="campo">
+        <label for="ia-clave">Clave de la API</label>
+        <input type="password" id="ia-clave" autocomplete="off" spellcheck="false" placeholder="Pega aquí tu clave">
+        <span class="ayuda" id="ia-ayuda-clave">Créala en console.anthropic.com → API keys.</span>
+      </p>
+      <p class="campo">
+        <label for="ia-modelo">Modelo</label>
+        <input type="text" id="ia-modelo" list="ia-modelos" autocomplete="off" spellcheck="false">
+        <datalist id="ia-modelos"></datalist>
+      </p>
+      <p class="opcion"><input type="checkbox" id="ia-recordar"><label for="ia-recordar">Recordar la clave en este navegador <span class="opcion__desc">Úsalo solo en tu propio computador.</span></label></p>
+      <p id="estado-config-ia" class="mensaje" role="status" aria-live="polite"></p>
+      <p class="acciones">
+        <button type="submit" class="boton boton--primario">Guardar y activar</button>
+        <button type="button" id="btn-probar-ia" class="boton">Probar conexión</button>
+        <button type="button" id="btn-olvidar-clave" class="boton boton--peligro">Borrar clave</button>
+      </p>
+    </form>
+  </dialog>
+
+  <!-- ============ DIÁLOGO: EVENTO ============ -->
+  <dialog id="dlg-evento" class="dialogo" aria-labelledby="t-evento">
+    <form id="form-evento" class="dialogo__cuerpo">
+      <!-- div: título del diálogo y botón de cerrar -->
+      <div class="dialogo__cabecera">
+        <h2 id="t-evento">Nuevo evento</h2>
+        <button type="button" class="boton-cerrar" data-cerrar aria-label="Cerrar">×</button>
+      </div>
+      <p class="campo">
+        <label for="ev-titulo">Nombre del evento</label>
+        <input type="text" id="ev-titulo" maxlength="60" placeholder="Ejemplo: Izada de bandera" required>
+      </p>
+      <!-- div: rejilla de campos del formulario -->
+      <div class="rejilla-campos">
+        <p class="campo">
+          <label for="ev-tipo">Tipo</label>
+          <select id="ev-tipo">
+            <option value="acto">Acto cívico</option>
+            <option value="reunion">Reunión</option>
+            <option value="evaluacion">Evaluación</option>
+            <option value="salida">Salida pedagógica</option>
+            <option value="otro">Otro</option>
+          </select>
+        </p>
+        <p class="campo">
+          <label for="ev-color">Color</label>
+          <input type="color" id="ev-color" value="#b45309">
+        </p>
+        <p class="campo">
+          <label for="ev-dia">Día</label>
+          <select id="ev-dia"></select>
+        </p>
+      </div>
+      <fieldset id="ev-bloques" class="casillas"><legend>Horas</legend></fieldset>
+      <fieldset id="ev-cursos" class="casillas"><legend>Cursos</legend></fieldset>
+      <p class="campo">
+        <label for="ev-nota">Nota (opcional)</label>
+        <input type="text" id="ev-nota" maxlength="120" placeholder="Ejemplo: en el patio central">
+      </p>
+      <p class="interruptor">
+        <input type="checkbox" id="ev-reservar" role="switch">
+        <label for="ev-reservar">Reservar la hora (no hay clase)
+          <span class="opcion__desc">Las clases de esas horas se mueven; si no caben, quedan pendientes con su motivo.</span></label>
+      </p>
+      <p id="estado-evento" class="mensaje" role="alert"></p>
+      <p class="acciones">
+        <button type="submit" class="boton boton--primario" data-accion="guardar-evento">Guardar evento</button>
+        <button type="button" id="btn-borrar-evento" class="boton boton--peligro" hidden>Eliminar</button>
+      </p>
+    </form>
+  </dialog>
+
+  <!-- ============ DIÁLOGO: EDITAR NOMBRES ============ -->
+  <dialog id="dlg-nombres" class="dialogo dialogo--ancho" aria-labelledby="t-nombres">
+    <!-- div: contenido del diálogo -->
+    <div class="dialogo__cuerpo">
+      <!-- div: título del diálogo y botón de cerrar -->
+      <div class="dialogo__cabecera">
+        <h2 id="t-nombres">Editar nombres</h2>
+        <button type="button" class="boton-cerrar" data-cerrar aria-label="Cerrar">×</button>
+      </div>
+      <p class="ayuda">Toca un nombre, escríbelo de nuevo y pulsa Enter. El horario no se mueve. También puedes pedírselo al asistente: «Cambia Luis Vega por Luis Fernando Vega».</p>
+      <p id="estado-nombres" class="mensaje" role="status" aria-live="polite"></p>
+      <!-- div: rejilla con las listas editables -->
+      <div class="nombres">
+        <section aria-labelledby="t-n-docentes"><h3 id="t-n-docentes">Docentes</h3><ul id="n-docentes" class="editables"></ul></section>
+        <section aria-labelledby="t-n-materias"><h3 id="t-n-materias">Materias</h3><ul id="n-materias" class="editables"></ul></section>
+        <section aria-labelledby="t-n-salones"><h3 id="t-n-salones">Salones</h3><ul id="n-salones" class="editables"></ul></section>
+      </div>
+    </div>
+  </dialog>
+
+  <!-- ============ DIÁLOGO: CÓDIGO QR ============ -->
+  <dialog id="dlg-qr" class="dialogo" aria-labelledby="t-qr">
+    <!-- div: contenido del diálogo -->
+    <div class="dialogo__cuerpo">
+      <!-- div: título del diálogo y botón de cerrar -->
+      <div class="dialogo__cabecera">
+        <h2 id="t-qr">Llévalo en tu celular</h2>
+        <button type="button" class="boton-cerrar" data-cerrar aria-label="Cerrar">×</button>
+      </div>
+      <p class="ayuda">Escanea el código con la cámara: se abre el horario en el celular y desde ahí puedes descargarlo.</p>
+      <!-- div: lugar donde se dibuja el código -->
+      <div id="qr-lienzo" class="qr"></div>
+      <p id="estado-qr" class="mensaje" role="status" aria-live="polite"></p>
+      <p class="campo" id="campo-qr-url">
+        <label for="qr-url">Dirección de la página publicada</label>
+        <input type="url" id="qr-url" placeholder="https://tu-usuario.github.io/slotnova/" autocomplete="off">
+        <span class="ayuda">El QR necesita la dirección pública (por ejemplo, GitHub Pages).</span>
+      </p>
+      <p class="acciones">
+        <button type="button" id="btn-qr-copiar" class="boton">Copiar enlace</button>
+        <button type="button" id="btn-qr-png" class="boton">Descargar el QR</button>
+      </p>
+    </div>
+  </dialog>
+
+  <!-- ============ ASISTENTE (chat con la IA, por texto o por voz) ============ -->
+  <button type="button" id="btn-asistente" class="fab" data-abrir="asistente" aria-label="Abrir el asistente" hidden>
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 3l1.8 4.7L18.5 9.5l-4.7 1.8L12 16l-1.8-4.7L5.5 9.5l4.7-1.8z M18 15l.9 2.1 2.1.9-2.1.9L18 21l-.9-2.1-2.1-.9 2.1-.9z"/></svg>
+    <span>Asistente</span>
+  </button>
+  <aside id="asistente" class="asistente" aria-labelledby="t-asistente" hidden>
+    <!-- div: cabecera del asistente -->
+    <div class="asistente__cabecera">
+      <h2 id="t-asistente">Asistente</h2>
+      <p id="asistente-estado" class="estado-ia"></p>
+      <button type="button" id="chat-voz" class="boton-icono" aria-pressed="false" aria-label="Leer las respuestas en voz alta" title="Leer las respuestas en voz alta">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9v6h4l5 4V5L8 9z M16 9a4 4 0 0 1 0 6 M18.5 6.5a8 8 0 0 1 0 11"/></svg>
+      </button>
+      <button type="button" class="boton-icono" data-abrir="ia" aria-label="Configurar la IA" title="Configurar la IA">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 7h9M17 7h3M4 17h3M11 17h9"/><circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/></svg>
+      </button>
+      <button type="button" id="btn-cerrar-asistente" class="boton-cerrar" aria-label="Cerrar el asistente">×</button>
+    </div>
+    <ol id="chat" class="chat" aria-live="polite"></ol>
+    <ul id="chat-sugerencias" class="chips chips--chat" aria-label="Sugerencias"></ul>
+    <form id="form-chat" class="chat__entrada">
+      <label for="chat-texto" class="visually-hidden">Escribe al asistente</label>
+      <textarea id="chat-texto" rows="1" placeholder="Pregunta o pide un cambio…"></textarea>
+      <button type="button" id="btn-voz-chat" class="boton-voz" data-voz="chat-texto" data-enviar aria-label="Hablar con el asistente">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M12 15a3 3 0 0 0 3-3V6a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3z M19 11a7 7 0 0 1-14 0 M12 18v3"/></svg>
+      </button>
+      <button type="submit" class="boton boton--primario" aria-label="Enviar">
+        <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 12l16-8-6 16-2-7z"/></svg>
+      </button>
+    </form>
+  </aside>
+
+  <script src="js/xlsx-lector.js"></script>
+  <script src="js/datos.js"></script>
+  <script src="js/datos-prueba.js"></script>
+  <script src="js/diagnostico.js"></script>
+  <script src="js/motor.js"></script>
+  <script src="js/validador.js"></script>
+  <script src="js/reglas.js"></script>
+  <script src="js/xlsx-escritor.js"></script>
+  <script src="js/qr.js"></script>
+  <script src="js/ia.js"></script>
+  <script src="js/exportar.js"></script>
+  <script src="js/app.js"></script>
+  <script src="js/asistente.js"></script>
+</body>
+</html>
